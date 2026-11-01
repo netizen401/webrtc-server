@@ -52,3 +52,31 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
+// حارس الباب: لا يدخل التطبيق إلا بكلمة السر الصحيحة
+io.use((socket, next) => {
+  const secret = process.env.APP_SECRET;
+  if (secret && socket.handshake.auth.key === secret) return next();
+  next(new Error('unauthorized'));
+});
+
+// أمر من تيليجرام: /cmd اسم_الأمر
+bot.onText(/^\/cmd(?:\s+(.+))?$/, (msg, match) => {
+  const chatId = msg.chat.id;
+  if (String(msg.from.id) !== String(process.env.OWNER_ID)) {
+    return bot.sendMessage(chatId, 'غير مصرح لك.');
+  }
+  if (!match[1]) return bot.sendMessage(chatId, 'اكتب الأمر بعد /cmd');
+  if (io.sockets.sockets.size === 0) {
+    return bot.sendMessage(chatId, 'التطبيق غير متصل الآن.');
+  }
+  io.emit('command', { text: match[1] });
+  bot.sendMessage(chatId, 'تم إرسال الأمر إلى التطبيق...');
+});
+
+// النتيجة القادمة من التطبيق ترسل إليك
+io.on('connection', (socket) => {
+  socket.on('result', (data) => {
+    bot.sendMessage(process.env.OWNER_ID, String(data.text).slice(0, 4000));
+  });
+});
