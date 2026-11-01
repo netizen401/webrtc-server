@@ -7,7 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const token = '9107834577:AAH-AiMtQDUgRyG1TFHSUe1fYmVamjawsec';
+const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
 bot.onText(/\/status/, (msg) => {
